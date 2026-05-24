@@ -312,34 +312,44 @@ class RequirementService:
     ):
         import os
 
-        test_file_content = """
-    from generated_frameworks.utils.playwright_driver import PlaywrightDriver
+        hierarchy_data = (
+            self.connector
+            .fetch_complete_hierarchy(work_item_id)
+        )
 
-    from generated_frameworks.pages.finance_module_page import LoginPage
+        epic_name = (
+            hierarchy_data["title"]
+            .lower()
+            .replace(" ", "_")
+        )
+
+        test_file_content = f"""from generated_frameworks.utils.playwright_driver import PlaywrightDriver
+
+        from generated_frameworks.pages.{epic_name}_page import LoginPage
 
 
-    driver = PlaywrightDriver()
+        driver = PlaywrightDriver()
 
-    page = driver.get_page()
+        page = driver.get_page()
 
-    page.goto(
-        "https://practicetestautomation.com/practice-test-login/"
-    )
+        page.goto(
+            "https://practicetestautomation.com/practice-test-login/"
+        )
 
-    login_page = LoginPage(page)
+        login_page = LoginPage(page)
 
-    login_page.enter_a_valid_username_in_the_username_field()
+        login_page.enter_a_valid_username_in_the_username_field()
 
-    login_page.enter_a_valid_password_in_the_password_field()
+        login_page.enter_a_valid_password_in_the_password_field()
 
-    login_page.click_on_the_login_button()
+        login_page.click_on_the_login_button()
 
-    input(
-        "Press Enter to close browser..."
-    )
+        input(
+            "Press Enter to close browser..."
+        )
 
-    driver.close()
-    """
+        driver.close()
+        """
 
         os.makedirs(
             "generated_frameworks/tests",
@@ -347,8 +357,8 @@ class RequirementService:
         )
 
         file_path = (
-            "generated_frameworks/tests/"
-            "test_finance_module.py"
+            f"generated_frameworks/tests/"
+            f"test_{epic_name}.py"
         )
 
         with open(
