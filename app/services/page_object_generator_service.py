@@ -3,6 +3,9 @@ import re
 from app.services.locator_intelligence_service import (
     LocatorIntelligenceService
 )
+from app.services.test_data_generator_service import (
+    TestDataGeneratorService
+)
 
 
 class PageObjectGeneratorService:
@@ -11,6 +14,9 @@ class PageObjectGeneratorService:
 
         self.locator_service = (
             LocatorIntelligenceService()
+        )
+        self.test_data_service = (
+            TestDataGeneratorService()
         )
 
     def sanitize_name(
@@ -311,7 +317,7 @@ class PageObjectGeneratorService:
                         )
 
                         page_object_content += (
-                            f'            "test_data",\n'
+                            f'            self.test_data_service.generate_test_data(step),\n'
                         )
 
                         page_object_content += (

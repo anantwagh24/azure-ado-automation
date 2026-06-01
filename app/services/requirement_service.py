@@ -1,3 +1,5 @@
+import json
+
 from app.connectors.azure_devops_connector import AzureDevOpsConnector
 from app.services.ai_service import AIService
 from app.utils.file_storage import FileStorage
@@ -9,6 +11,8 @@ from app.services.page_object_generator_service import (    PageObjectGeneratorS
 from app.services.playwright_generator_service import (    PlaywrightGeneratorService)
 from app.services.test_runner_generator_service import ( TestRunnerGeneratorService )
 from app.services.ado_test_case_service import (    ADOTestCaseService)
+from app.services.assertion_generator_service import (AssertionGeneratorService)
+import textwrap
 
 class RequirementService:
 
@@ -33,6 +37,9 @@ class RequirementService:
         )
         self.ado_test_case_service = (
             ADOTestCaseService()
+        )
+        self.assertion_service = (
+            AssertionGeneratorService()
         )
 
     def fetch_requirement(self, work_item_id):
@@ -323,12 +330,29 @@ class RequirementService:
             .replace(" ", "_")
         )
 
-        test_file_content = f"""from generated_frameworks.utils.playwright_driver import PlaywrightDriver
+        assertion_code = (
+            self.assertion_service
+            .generate_assertion(
+                "dashboard"
+            )
+        )
+
+        test_file_content = textwrap.dedent(f"""
+
+        from playwright.sync_api import expect
+
+        from generated_frameworks.utils.playwright_driver import PlaywrightDriver
 
         from generated_frameworks.pages.{epic_name}_page import LoginPage
 
+        from app.services.reporting_service import (
+            ReportingService
+        )
+
 
         driver = PlaywrightDriver()
+
+        report_service = ReportingService()
 
         page = driver.get_page()
 
@@ -338,18 +362,48 @@ class RequirementService:
 
         login_page = LoginPage(page)
 
+
+        # Dynamic Test Execution
+
         login_page.enter_a_valid_username_in_the_username_field()
 
         login_page.enter_a_valid_password_in_the_password_field()
 
         login_page.click_on_the_login_button()
 
+
+        # AI Assertion Generation
+
+        expect(
+            page.locator(
+                ".post-title"
+            )
+        ).to_be_visible()
+
+
+        # AI Reporting Dashboard
+
+        report_service.generate_report(
+            {{
+                "epic_name":
+                    "{epic_name}",
+
+                "test_name":
+                    "AI Generated Test",
+
+                "status":
+                    "PASS"
+            }}
+        )
+
+
         input(
             "Press Enter to close browser..."
         )
 
         driver.close()
-        """
+
+        """)
 
         os.makedirs(
             "generated_frameworks/tests",
@@ -378,3 +432,57 @@ class RequirementService:
                 file_path
 
         }
+
+    import json
+    import os
+
+    class ReportingService:
+
+        def generate_report(
+                self,
+                test_results
+        ):
+            os.makedirs(
+                "reports",
+                exist_ok=True
+            )
+
+            report_path = (
+                "reports/execution_report.html"
+            )
+
+            html_content = f"""
+
+            <html>
+
+            <head>
+
+                <title>
+                    AI Automation Report
+                </title>
+
+            </head>
+
+            <body>
+
+                <h1>
+                    Execution Summary
+                </h1>
+
+                <pre>
+                    {json.dumps(test_results, indent=4)}
+                </pre>
+
+            </body>
+
+            </html>
+
+            """
+
+            with open(
+                    report_path,
+                    "w"
+            ) as file:
+                file.write(html_content)
+
+            return report_path
